@@ -174,12 +174,13 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding-top:14px}
   <!-- results -->
   <div id="results-section" style="display:none">
 
-    <!-- PDF button row -->
+    <!-- PDF + clear button row -->
     <div class="btn-row no-print" style="margin-bottom:10px">
       <button class="btn btn-pdf" id="btn-pdf">&#8595; Gerar PDF</button>
       <span style="color:var(--muted);font-size:12px;align-self:center">
         Abre a janela de impressão do browser — salve como PDF.
       </span>
+      <button class="btn btn-clear" id="btn-clear-res" style="margin-left:auto">&#10005; Limpar resultado</button>
     </div>
 
     <!-- summary -->
@@ -376,6 +377,11 @@ document.getElementById("btn-clear").onclick=()=>{
   document.getElementById("results-section").style.display="none";
 };
 document.getElementById("btn-map").onclick=mapCart;
+document.getElementById("btn-clear-res").onclick=()=>{
+  document.getElementById("results-section").style.display="none";
+  document.getElementById("tbody-res").innerHTML="";
+  document.getElementById("summary-bar").innerHTML="";
+};
 document.getElementById("btn-pdf").onclick=()=>{
   const d=new Date();
   document.getElementById("print-footer").textContent=
