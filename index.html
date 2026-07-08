@@ -2,6 +2,8 @@
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>De-para US ETF → UCITS (XP)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 /* ── base ── */
 :root{--cream:#FFF8F3;--white:#fff;--tan:#EDDBC9;--tan2:#FBF1E8;--brown:#3B312E;
@@ -176,9 +178,9 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding-top:14px}
 
     <!-- PDF + clear button row -->
     <div class="btn-row no-print" style="margin-bottom:10px">
-      <button class="btn btn-pdf" id="btn-pdf">&#8595; Gerar PDF</button>
+      <button class="btn btn-pdf" id="btn-pdf">&#8595; Baixar PDF</button>
       <span style="color:var(--muted);font-size:12px;align-self:center">
-        Abre a janela de impressão do browser — salve como PDF.
+        Gera e baixa o PDF direto — sem diálogo de impressão.
       </span>
       <button class="btn btn-clear" id="btn-clear-res" style="margin-left:auto">&#10005; Limpar resultado</button>
     </div>
@@ -382,11 +384,43 @@ document.getElementById("btn-clear-res").onclick=()=>{
   document.getElementById("tbody-res").innerHTML="";
   document.getElementById("summary-bar").innerHTML="";
 };
+let lastResults=[];
+
 document.getElementById("btn-pdf").onclick=()=>{
+  if(!lastResults.length){alert("Mapeie a carteira primeiro.");return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
   const d=new Date();
-  document.getElementById("print-footer").textContent=
-    `De-para US ETF → UCITS (XP) · ${d.toLocaleDateString("pt-BR")} ${d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})} · validar cada equivalência antes de usar com clientes.`;
-  window.print();
+  const dateStr=d.toLocaleDateString("pt-BR")+" "+d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+  // cabeçalho
+  doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(59,49,46);
+  doc.text("De-para US ETF → UCITS (XP)",14,13);
+  doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(154,140,130);
+  doc.text("Uso interno · validar cada equivalência antes de usar com clientes · "+dateStr,14,19);
+  // tabela
+  const cols=["Ativo US","Exposição","UCITS ★","ISIN","Bolsa/Moeda","Dist.","Tipo","Diferença / Observação"];
+  const rows=lastResults.map(r=>[r.tk+(r.lbl?"\n"+r.lbl:""),r.exp,r.ucits,r.isin,r.bolsa,r.dist,r.tipo,r.obs]);
+  const colStyles={
+    0:{cellWidth:18},1:{cellWidth:38},2:{cellWidth:16},3:{cellWidth:28},
+    4:{cellWidth:20},5:{cellWidth:10},6:{cellWidth:20},7:{cellWidth:100}
+  };
+  doc.autoTable({
+    head:[cols],body:rows,startY:23,
+    styles:{fontSize:7,cellPadding:2,overflow:"linebreak",valign:"top"},
+    headStyles:{fillColor:[251,241,232],textColor:[154,140,130],fontStyle:"bold",fontSize:7},
+    columnStyles:colStyles,
+    didParseCell:function(data){
+      if(data.section==="body"){
+        const r=lastResults[data.row.index];
+        if(r.mode==="exact"&&r.tipo==="Direto") data.cell.styles.fillColor=[229,242,234];
+        else if(r.mode==="noxp") data.cell.styles.fillColor=[246,228,226];
+        else if(r.mode==="alias"||r.mode==="term") data.cell.styles.fillColor=[255,250,242];
+      }
+    },
+    margin:{left:14,right:14}
+  });
+  const fname="de-para-ucits-xp-"+d.toISOString().split("T")[0]+".pdf";
+  doc.save(fname);
 };
 
 function mapCart(){
@@ -395,22 +429,45 @@ function mapCart(){
 
   let html="";
   let nOk=0,nComp=0,nNoxp=0,nNone=0;
+  lastResults=[];
 
   rows.forEach(({tk,lbl})=>{
     const q=tk.trim().toUpperCase();
     const res=search(q);
     html+=resultRow(q,lbl);
+    // dados estruturados para PDF
+    let pr={tk:q,lbl,mode:res.mode,exp:"",ucits:"",isin:"",bolsa:"",dist:"",tipo:"",obs:""};
     if(res.mode==="exact"){
-      const b=badge(primaryOf(res.ticker).notes);
+      const p=primaryOf(res.ticker),b=badge(p.notes);
+      pr={...pr,exp:famOf(res.ticker),ucits:p.ucits_ticker,isin:p.ucits_isin,
+          bolsa:p.exchange+" "+p.listing_ccy+(p.hedge_ccy?" (hdg)":""),dist:p.distribution_policy,
+          tipo:b.l,obs:p.notes};
       if(b.l==="Direto")nOk++; else nComp++;
-    } else if(res.mode==="alias"||res.mode==="term") nComp++;
-    else if(res.mode==="noxp") nNoxp++;
-    else nNone++;
+    } else if(res.mode==="alias"){
+      const rep=res.rep,p=primaryOf(rep);
+      const an=ALIAS_NOTES[q]||"Mapeado pela exposição de "+rep+".";
+      pr={...pr,exp:famOf(rep)+" (via "+rep+")",ucits:p.ucits_ticker,isin:p.ucits_isin,
+          bolsa:p.exchange+" "+p.listing_ccy+(p.hedge_ccy?" (hdg)":""),dist:p.distribution_policy,
+          tipo:"Por exposição",obs:an};
+      nComp++;
+    } else if(res.mode==="term"){
+      const t=res.tickers[0],p=primaryOf(t),b=badge(p.notes);
+      pr={...pr,exp:famOf(t),ucits:p.ucits_ticker,isin:p.ucits_isin,
+          bolsa:p.exchange+" "+p.listing_ccy+(p.hedge_ccy?" (hdg)":""),dist:p.distribution_policy,
+          tipo:"Por exposição",obs:p.notes};
+      nComp++;
+    } else if(res.mode==="noxp"){
+      pr={...pr,exp:"—",ucits:"Sem UCITS na XP",isin:"—",bolsa:"—",dist:"—",tipo:"Sem XP",obs:res.reason};
+      nNoxp++;
+    } else {
+      pr={...pr,exp:"—",ucits:"Não encontrado",isin:"—",bolsa:"—",dist:"—",tipo:"—",obs:""};
+      nNone++;
+    }
+    lastResults.push(pr);
   });
 
   document.getElementById("tbody-res").innerHTML=html;
 
-  // summary bar
   let s="";
   if(nOk)   s+=`<span class="sum-chip sum-ok">&#10003; ${nOk} direto${nOk>1?"s":""}</span>`;
   if(nComp) s+=`<span class="sum-chip sum-comp">~ ${nComp} comparável${nComp>1?"is":""}</span>`;
