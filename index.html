@@ -40,8 +40,7 @@ h1{font-family:'Taviraj',Georgia,serif;font-size:17px;margin:0;font-weight:700}
   border-radius:8px;font-size:14px;font-family:monospace;color:var(--brown);
   background:var(--white);outline:none;letter-spacing:.4px}
 .tbl-input input[type=text]:focus{border-color:var(--gold)}
-.tbl-input .col-tk{width:130px}
-.tbl-input .col-nm{width:auto}
+.tbl-input .col-tk{width:auto}
 .tbl-input .col-rm{width:36px;text-align:center}
 .btn-rm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;
         padding:4px 8px;border-radius:6px;line-height:1}
@@ -158,7 +157,6 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding-top:14px}
     <table class="tbl-input" id="tbl-in">
       <thead><tr>
         <th class="col-tk">Ticker US</th>
-        <th class="col-nm">Nome / observação (opcional)</th>
         <th class="col-rm"></th>
       </tr></thead>
       <tbody id="tbody-in"></tbody>
@@ -342,13 +340,12 @@ function resultRow(raw, label){
 
 // ── input rows ──
 let rowId=0;
-function addRow(tk="",lbl=""){
+function addRow(tk=""){const lbl="";
   const id=++rowId;
   const tr=document.createElement("tr");
   tr.id="row-"+id;
   tr.innerHTML=`
     <td class="col-tk"><input type="text" placeholder="ex.: IWM" value="${esc(tk)}" data-role="tk" autocomplete="off" spellcheck="false"></td>
-    <td class="col-nm"><input type="text" placeholder="nome / observação" value="${esc(lbl)}" data-role="lbl" autocomplete="off"></td>
     <td class="col-rm"><button class="btn-rm" title="Remover" onclick="removeRow(${id})">&#215;</button></td>`;
   document.getElementById("tbody-in").appendChild(tr);
   // paste handler no campo ticker
@@ -365,7 +362,7 @@ function removeRow(id){const el=document.getElementById("row-"+id);if(el)el.remo
 function getRows(){
   return [...document.querySelectorAll("#tbody-in tr")].map(tr=>({
     tk:(tr.querySelector("[data-role=tk]")||{}).value||"",
-    lbl:(tr.querySelector("[data-role=lbl]")||{}).value||""
+    lbl:""
   })).filter(r=>r.tk.trim());
 }
 
@@ -399,7 +396,7 @@ document.getElementById("btn-pdf").onclick=()=>{
   doc.text("Uso interno · validar cada equivalência antes de usar com clientes · "+dateStr,14,19);
   // tabela
   const cols=["Ativo US","Exposição","UCITS ★","ISIN","Bolsa/Moeda","Dist.","Tipo","Diferença / Observação"];
-  const rows=lastResults.map(r=>[r.tk+(r.lbl?"\n"+r.lbl:""),r.exp,r.ucits,r.isin,r.bolsa,r.dist,r.tipo,r.obs]);
+  const rows=lastResults.map(r=>[r.tk,r.exp,r.ucits,r.isin,r.bolsa,r.dist,r.tipo,r.obs]);
   const colStyles={
     0:{cellWidth:18},1:{cellWidth:38},2:{cellWidth:16},3:{cellWidth:28},
     4:{cellWidth:20},5:{cellWidth:10},6:{cellWidth:20},7:{cellWidth:100}
