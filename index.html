@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>De-para US ETF → UCITS (XP) · Cloudete</title>
+<title>De-para US ETF → UCITS (XP)</title>
 <style>
 /* ── base ── */
 :root{--cream:#FFF8F3;--white:#fff;--tan:#EDDBC9;--tan2:#FBF1E8;--brown:#3B312E;
@@ -219,7 +219,7 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding-top:14px}
   </details>
 
   <footer class="no-print">
-    Ferramenta interna Cloudete &middot; gerado de ucits_mapping.csv &middot;
+    Ferramenta interna &middot; gerado de ucits_mapping.csv &middot;
     verifique cada equivalência antes de usar com clientes.
   </footer>
 </div>
@@ -378,7 +378,7 @@ document.getElementById("btn-map").onclick=mapCart;
 document.getElementById("btn-pdf").onclick=()=>{
   const d=new Date();
   document.getElementById("print-footer").textContent=
-    `Ferramenta interna Cloudete · De-para US ETF → UCITS (XP) · ${d.toLocaleDateString("pt-BR")} ${d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})} · validar cada equivalência antes de usar com clientes.`;
+    `De-para US ETF → UCITS (XP) · ${d.toLocaleDateString("pt-BR")} ${d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})} · validar cada equivalência antes de usar com clientes.`;
   window.print();
 };
 
